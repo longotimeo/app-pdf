@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF EditPro - Modifica PDF Facilmente</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- PDF-Lib CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <!-- PDF.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <span class="logo-icon">📄</span>
+                <div>
+                    <h2>PDF <span class="accent-text">EditPro</span></h2>
+                    <p class="creator-tag">Creato da Tomasicchio Giuseppe</p>
+                </div>
+            </div>
+            
+            <!-- Tab selectors -->
+            <div class="sidebar-tabs">
+                <button class="tab-btn active" id="tabEdit" title="Modifica PDF">✏️ Modifica</button>
+                <button class="tab-btn" id="tabMerge" title="Unisci più PDF">🔗 Unisci</button>
+                <button class="tab-btn" id="tabSplit" title="Dividi PDF">✂️ Dividi</button>
+                <button class="tab-btn" id="tabConvert" title="Converti PDF in Word">📝 Word</button>
+            </div>
+            
+            <!-- Panel: Edit -->
+            <div class="tab-panel" id="panelEdit">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-content">
+                        <span class="upload-icon">📤</span>
+                        <p class="upload-title">Carica un PDF</p>
+                        <p class="upload-subtitle">Trascina qui o clicca per sfogliare</p>
+                    </div>
+                    <input type="file" id="pdfFileInput" accept="application/pdf" style="display: none;">
+                </div>
+
+                <div class="sidebar-section" id="pagesSection" style="display: none; margin-top: 20px;">
+                    <h3>Pagine Documento</h3>
+                    <div class="pages-list" id="pagesList">
+                        <!-- Thumbnails are loaded dynamically here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel: Merge -->
+            <div class="tab-panel" id="panelMerge" style="display: none;">
+                <div class="upload-zone" id="mergeUploadZone">
+                    <div class="upload-content">
+                        <span class="upload-icon">➕</span>
+                        <p class="upload-title">Aggiungi File PDF</p>
+                        <p class="upload-subtitle">Seleziona più PDF da unire</p>
+                    </div>
+                    <input type="file" id="mergeFileInput" accept="application/pdf" multiple style="display: none;">
+                </div>
+                
+                <div class="sidebar-section" style="margin-top: 20px;">
+                    <h3>Coda File PDF</h3>
+                    <div class="merge-list" id="mergeList">
+                        <p class="empty-list-msg">Nessun file aggiunto per l'unione.</p>
+                    </div>
+                    <button class="btn btn-primary" id="startMergeBtn" disabled style="width: 100%; margin-top: 15px; justify-content: center;">
+                        🔗 Unisci PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel: Split -->
+            <div class="tab-panel" id="panelSplit" style="display: none;">
+                <div class="sidebar-section">
+                    <h3>Opzioni Divisione</h3>
+                    <p class="help-text" style="margin-bottom: 15px;">Carica prima un file PDF nella scheda "Modifica" per poterlo dividere.</p>
+                    
+                    <div class="control-group" id="splitControls" style="display: none;">
+                        <label for="splitRangeInput">Pagine da estrarre</label>
+                        <input type="text" id="splitRangeInput" placeholder="es. 1-3, 5, 7-9">
+                        <p class="help-text" style="margin-top: 4px;">Usa trattini per gli intervalli e virgole per separare (es: 1-3, 5).</p>
+                        
+                        <button class="btn btn-primary" id="startSplitBtn" style="width: 100%; margin-top: 20px; justify-content: center;">
+                            ✂️ Dividi PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Panel: Convert PDF to Word -->
+            <div class="tab-panel" id="panelConvert" style="display: none;">
+                <div class="upload-zone" id="convertUploadZone">
+                    <div class="upload-content">
+                        <span class="upload-icon">📝</span>
+                        <p class="upload-title">Carica PDF da Convertire</p>
+                        <p class="upload-subtitle">Oppure usa il file già caricato nella scheda Modifica</p>
+                    </div>
+                    <input type="file" id="convertFileInput" accept="application/pdf" style="display: none;">
+                </div>
+
+                <div class="sidebar-section" style="margin-top: 20px;">
+                    <h3>Opzioni Conversione</h3>
+                    
+                    <div class="control-group" style="margin-top: 12px;">
+                        <label>File selezionato</label>
+                        <div id="convertFileName" style="font-size: 0.85rem; color: var(--text-muted); font-style: italic; padding: 8px 0;">Nessun file selezionato</div>
+
+                        <label style="margin-top: 8px;">Includi nel documento Word:</label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="convertIncludeImages" checked>
+                            Includi anteprime pagine come immagini
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="convertIncludeText" checked>
+                            Includi testo estratto
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="convertPageNumbers" checked>
+                            Includi numero di pagina
+                        </label>
+                        
+                        <div style="margin-top: 8px;">
+                            <label for="convertImageQuality">Qualità immagini</label>
+                            <select id="convertImageQuality" style="background-color: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white; padding: 8px 12px; border-radius: 8px; width: 100%;">
+                                <option value="1.5">Alta (1.5x)</option>
+                                <option value="1.0" selected>Media (1.0x)</option>
+                                <option value="0.75">Bassa (0.75x)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="convertProgress" style="display: none; margin-top: 16px;">
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;" id="convertProgressText">Conversione in corso...</div>
+                        <div style="background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; height: 6px;">
+                            <div id="convertProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), #7c3aed); transition: width 0.3s ease; border-radius: 6px;"></div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="startConvertBtn" style="width: 100%; margin-top: 20px; justify-content: center;" disabled>
+                        📝 Converti in Word (.docx)
+                    </button>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer" style="margin-top: auto;">
+                <p>Elaborazione locale e sicura</p>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="workspace-container">
+            <!-- Top Controls Header -->
+            <header class="top-bar">
+                <div class="document-info">
+                    <span id="documentName">Nessun documento caricato</span>
+                </div>
+                
+                <div class="toolbar" id="toolbar" style="display: none;">
+                    <button class="tool-btn active" id="toolSelect" title="Seleziona e sposta">
+                        <span class="btn-icon">🖱️</span> Seleziona
+                    </button>
+                    <button class="tool-btn" id="toolWhiteout" title="Cancella / Copri testo">
+                        <span class="btn-icon">🧹</span> Cancella (Whiteout)
+                    </button>
+                    <button class="tool-btn" id="toolText" title="Aggiungi Testo">
+                        <span class="btn-icon">✍️</span> Aggiungi Testo
+                    </button>
+                    <button class="tool-btn" id="toolCutMove" title="Taglia e Sposta Testo Esistente">
+                        <span class="btn-icon">✂️</span> Sposta Testo
+                    </button>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-secondary" id="undoBtn" disabled title="Annulla ultima azione">
+                        <span>↩️</span> Annulla
+                    </button>
+                    <button class="btn btn-secondary" id="zoomOutBtn" disabled>🔍-</button>
+                    <span id="zoomLevel" style="font-size: 0.9rem; min-width: 45px; text-align: center;">100%</span>
+                    <button class="btn btn-secondary" id="zoomInBtn" disabled>🔍+</button>
+                    <button class="btn btn-primary" id="exportBtn" disabled>
+                        <span>💾</span> Salva / Esporta
+                    </button>
+                </div>
+            </header>
+
+            <!-- Canvas View Area -->
+            <div class="canvas-viewport" id="canvasViewport">
+                <div class="canvas-wrapper" id="canvasWrapper">
+                    <!-- PDF Canvas and Editing overlay are dynamically sized and layered here -->
+                    <canvas id="pdfCanvas"></canvas>
+                    <div id="editingOverlay"></div>
+                </div>
+                <div class="no-file-overlay" id="noFileOverlay">
+                    <div class="no-file-content">
+                        <div class="large-icon">📂</div>
+                        <h3>Benvenuto in PDF EditPro</h3>
+                        <p>Carica un file PDF per iniziare a cancellare scritte e riscrivere sopra.</p>
+                        <button class="btn btn-primary" id="browseBtn">Seleziona File</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Properties Panel (Right side or floating) -->
+        <div class="properties-panel" id="propertiesPanel" style="display: none;">
+            <h3>Proprietà Elemento</h3>
+            <div class="no-selection-msg" id="noSelectionMsg">
+                Seleziona un elemento sulla pagina per modificarlo.
+            </div>
+            
+            <div class="properties-controls" id="propertiesControls" style="display: none;">
+                <!-- Text editing specific controls -->
+                <div class="control-group" id="propTextGroup">
+                    <label for="propTextValue">Contenuto Testo</label>
+                    <textarea id="propTextValue" rows="3" placeholder="Scrivi qui il testo..."></textarea>
+                    
+                    <label for="propFontSize">Dimensione Carattere (px)</label>
+                    <input type="number" id="propFontSize" min="8" max="72" value="14">
+
+                    <label for="propFontFamily">Font Standard PDF</label>
+                    <select id="propFontFamily">
+                        <option value="Helvetica">Helvetica (Sans-Serif)</option>
+                        <option value="Helvetica-Bold">Helvetica Bold</option>
+                        <option value="Times-Roman">Times New Roman (Serif)</option>
+                        <option value="Times-Bold">Times Bold</option>
+                        <option value="Courier">Courier (Monospace)</option>
+                        <option value="Courier-Bold">Courier Bold</option>
+                    </select>
+
+                    <label for="propTextColor">Colore Testo</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="propTextColor" value="#000000">
+                        <span id="propTextColorHex">#000000</span>
+                    </div>
+                </div>
+
+                <!-- Whiteout specific controls -->
+                <div class="control-group" id="propWhiteoutGroup">
+                    <label for="propFillColor">Colore Sfondo (Copertura)</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="propFillColor" value="#ffffff">
+                        <span id="propFillColorHex">#ffffff</span>
+                    </div>
+                    <p class="help-text">Scegli il bianco per cancellare, o seleziona un altro colore per farlo corrispondere allo sfondo del documento.</p>
+                </div>
+
+                <!-- Delete Element Button -->
+                <button class="btn btn-danger" id="deleteElementBtn" style="width: 100%; margin-top: 20px;">
+                    🗑️ Elimina Elemento
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
